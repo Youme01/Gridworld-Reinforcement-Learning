@@ -1,9 +1,11 @@
 #IMPORTS
 import pygame
 import random
-from enum import Enum
+
 from collections import namedtuple
 import numpy as np
+
+
 
 #INITIALIZATION
 pygame.init()
@@ -23,6 +25,7 @@ SPEED = 20
 WIDTH = 200 
 HEIGHT = 200
 
+
 class GameAI:
 
     def __init__(self, w=WIDTH, h=HEIGHT):
@@ -32,23 +35,26 @@ class GameAI:
 
         self.display = pygame.display.set_mode((self.w, self.h)) # init display
         pygame.display.set_caption('SAR')
-
+        self.man_x,self.man_y = self._place_man()
         self.clock = pygame.time.Clock()
+       
         self.reset()
 
     # Reset World
     def reset(self):
         self.drone = Point(self.w/2, self.h/2)
         self.score = 0
-        self.man = None
+        self.man
+        #self.man = Point(self.w-BLOCK_SIZE,self.h-BLOCK_SIZE)
         self._place_man()
         self.frame_iteration = 0
 
     # Man Position
     def _place_man(self):
-        x =self.w // 2
-        y = self.h //2
+        x =self.w -20
+        y = self.h -20
         self.man = Point(x, y)
+        return x ,y
     
     # Updating reward after every step
     def play_step(self, action):
@@ -84,20 +90,31 @@ class GameAI:
         return False
 
     #TO DO
-    def get_reward(self,game_over):
+    def get_reward(self, game_over):
+        
+        print(self.drone.x, self.drone.y)
 
+        if (self.drone.x >= 0 and self.drone.x < 20) or (self.drone.x > self.w-BLOCK_SIZE and self.drone.x < self.w) :
+            self.reward = -5
+        else:
+            self.reward = -1
+        if (self.drone.y >= 0 and self.drone.y < 20) or (self.drone.y > self.h-BLOCK_SIZE and self.drone.y < self.h):
+            self.reward = -5
+        else:
+            self.reward = -1
+            
         if self.is_collision() or self.frame_iteration > 1000: # colision & loop 
             game_over = True
-            self.reward = -500
+            self.reward = -500 
             return self.reward, game_over, self.score
 
-        elif self.drone == self.man: # place new man or just move
+        if self.drone == self.man: # place new man or just move
             self.score += 1
             self.reward = 1000
             self._place_man() 
-
-        else:
-            self.reward = 0
+        # elif pass:
+        #     pass
+        
 
         return self.reward, game_over, self.score
 

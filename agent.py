@@ -3,7 +3,8 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from game import GameAI
+from game import GameAI,Point
+
 from model import Linear_QNet, QTrainer
 from GraphPlot import plot
 
@@ -13,32 +14,38 @@ BATCH_SIZE = 1000
 LR = 0.001
 num_episode = 50000
 SHOW_EVERY = 200
-final_move = [0,0,0,0]
+
+START_EPSILON_DECAYING = 1
+END_EPSILON_DECAYING = num_episode // 2
+
 
 class Agent:
 
     def __init__(self):
         self.n_games = 0
-        self.epsilon = 0 # randomness
+        self.epsilon = 0.5 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = Linear_QNet(4, 256, 4)
+        self.model = Linear_QNet(2, 256, 4)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+        self.epsilon_decay_value = (self.epsilon)/(END_EPSILON_DECAYING-START_EPSILON_DECAYING)
 
     #TO DO
     def get_state(self, game):
         drone = game.drone
         state = [
-            drone.x,drone.y,
-            game.man.y < game.drone.y,  # man up
-            game.man.y > game.drone.y # man down
+            drone.x,drone.y
+
         ]
         return np.array(state, dtype=int)
     
     # Random Moves: tradeoff exploration / exploitation
-    def get_action(self, state):
-        self.epsilon = 80 - self.n_games
-
+    def get_action(self, state,episode):
+        
+        if END_EPSILON_DECAYING >= episode>= START_EPSILON_DECAYING:
+            self.epsilon -= self.epsilon_decay_value
+            
+        final_move = [0,0,0,0]
         if random.randint(0, 200) < self.epsilon:
             move = random.randint(0, 3)
             final_move[move] = 1
@@ -84,7 +91,7 @@ def train():
 
         state_old = agent.get_state(game) # get old state
 
-        final_move = agent.get_action(state_old) # get move
+        final_move = agent.get_action(state_old,episode) # get move
 
         reward, done, score = game.play_step(final_move) # perform move and get new state
 
