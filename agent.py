@@ -4,7 +4,8 @@ import random
 import numpy as np
 from collections import deque
 from game import GameAI,Point
-
+import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 from model import Linear_QNet, QTrainer
 from GraphPlot import plot
 
@@ -12,10 +13,12 @@ from GraphPlot import plot
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
-num_episode = 50000
+num_episode = 10000
 SHOW_EVERY = 200
-
-START_EPSILON_DECAYING = 1
+ep_reward = []
+plot_reward =[]
+AVG_reward =[]
+START_EPSILON_DECAYING = 0.001
 END_EPSILON_DECAYING = num_episode // 2
 
 
@@ -23,30 +26,32 @@ class Agent:
 
     def __init__(self):
         self.n_games = 0
-        self.epsilon = 0.5 # randomness
-        self.gamma = 0.9 # discount rate
+        self.epsilon = 1 # randomness
+        self.gamma = 0.45 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = Linear_QNet(2, 256, 4)
+        self.model = Linear_QNet(4, 256, 4)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
-        self.epsilon_decay_value = (self.epsilon)/(END_EPSILON_DECAYING-START_EPSILON_DECAYING)
-
+        # self.epsilon_decay_value = (self.epsilon)/(END_EPSILON_DECAYING-START_EPSILON_DECAYING)
+        self.epsilon_decay_value = 0.998
     #TO DO
     def get_state(self, game):
         drone = game.drone
         state = [
-            drone.x,drone.y
+            drone.x,drone.y,
+            game.man.x,game.man.y# [1,0],[0,0],[0,1]
 
         ]
         return np.array(state, dtype=int)
+
     
     # Random Moves: tradeoff exploration / exploitation
     def get_action(self, state,episode):
         
         if END_EPSILON_DECAYING >= episode>= START_EPSILON_DECAYING:
-            self.epsilon -= self.epsilon_decay_value
-            
+            self.epsilon *= self.epsilon_decay_value
+            self.epsilon = max(START_EPSILON_DECAYING,self.epsilon)        
         final_move = [0,0,0,0]
-        if random.randint(0, 200) < self.epsilon:
+        if random.random() < self.epsilon:
             move = random.randint(0, 3)
             final_move[move] = 1
         else:
@@ -80,42 +85,49 @@ class Agent:
 # MAIN FUNCTION (RunfromHere)
 def train():
 
-    plot_reward = []
-    plot_mean_reward = []
-    total_reward = 0
-
     agent = Agent()
     game = GameAI()
-
+    
     for episode in range(num_episode):
+        
+        episode_reward = 0
+        game.reset()
+        done = False
+        
+        while not done:
+           
+            state_old = agent.get_state(game) # get old state
+            
+            final_move = agent.get_action(state_old,episode) # get move
+            
+            reward, done = game.play_step(final_move) # perform move and get new state
+            
+            episode_reward += reward
+            
+            state_new = agent.get_state(game)
+        
+            # train short memory
+            agent.train_short_memory(state_old, final_move, reward, state_new, done)
 
-        state_old = agent.get_state(game) # get old state
-
-        final_move = agent.get_action(state_old,episode) # get move
-
-        reward, done, score = game.play_step(final_move) # perform move and get new state
-
-        state_new = agent.get_state(game)
-
-        # train short memory
-        agent.train_short_memory(state_old, final_move, reward, state_new, done)
-
-        # remember
-        agent.remember(state_old, final_move, reward, state_new, done)
+            # remember
+            agent.remember(state_old, final_move, reward, state_new, done)
+        
 
          # train long memory, plot result
-        if done:
-            game.reset()
-            agent.n_games += 1
-            agent.train_long_memory()
             
+            agent.n_games += 1            
+            agent.train_long_memory()            
         print('Episode:', episode,'Reward', reward,'Game', agent.n_games)
 
-    plot_reward.append(reward)
-    total_reward += reward
-    mean_score = total_reward / agent.n_games
-    plot_mean_reward.append(mean_score)
-    plot(plot_reward, plot_mean_reward)         
+        plot_reward.append(episode_reward)
+        ep_reward.append(episode)
+        average_reward = sum(plot_reward[-SHOW_EVERY:])/len(plot_reward[-SHOW_EVERY:])
+        print('Avg Reward:', average_reward)
+        AVG_reward.append(average_reward)
+        plt.plot(AVG_reward)
+        plt.show()
+        plt.savefig('Reward Graph.png')        
           
 if __name__ == '__main__':
     train()
+    

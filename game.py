@@ -1,7 +1,7 @@
 #IMPORTS
 import pygame
 import random
-
+import math
 from collections import namedtuple
 import numpy as np
 
@@ -24,6 +24,7 @@ BLOCK_SIZE = 20
 SPEED = 20
 WIDTH = 200 
 HEIGHT = 200
+Alpha = 0.9
 
 
 class GameAI:
@@ -32,12 +33,12 @@ class GameAI:
 
         self.w = w
         self.h = h
-
+        self.distance = 0 
         self.display = pygame.display.set_mode((self.w, self.h)) # init display
         pygame.display.set_caption('SAR')
-        self.man_x,self.man_y = self._place_man()
+        #self.man_x,self.man_y = self._place_man()
         self.clock = pygame.time.Clock()
-       
+        self.reward_curr = 0
         self.reset()
 
     # Reset World
@@ -45,16 +46,18 @@ class GameAI:
         self.drone = Point(self.w/2, self.h/2)
         self.score = 0
         self.man
-        #self.man = Point(self.w-BLOCK_SIZE,self.h-BLOCK_SIZE)
+        self.man = Point(self.w-BLOCK_SIZE,self.h-BLOCK_SIZE)
         self._place_man()
         self.frame_iteration = 0
 
     # Man Position
     def _place_man(self):
-        x =self.w -20
-        y = self.h -20
+        self.clock.tick(10)
+        x = self.man.x
+        y = self.man.y
+        x -= 20  # man move constantly
         self.man = Point(x, y)
-        return x ,y
+        return self.man
     
     # Updating reward after every step
     def play_step(self, action):
@@ -66,33 +69,36 @@ class GameAI:
                 quit()
         
         # 2. move drone
-        self._move(action) 
-
-        # 3. check if game over
+        self._move(action)
+        # 2. move drone
+        self._move(action)
+        if self.frame_iteration%3==0:
+            self._place_man() 
+        
         game_over = False
 
+        
         # 4. reward for each step
-        self.reward, game_over, self.score = self.get_reward(game_over)   
+        self.reward, game_over = self.get_reward(game_over)   
        
         # 5. update ui and clock
         self._update_ui()
 
-        self.clock.tick(SPEED)
-
-        return self.reward, game_over, self.score
+        self.clock.tick(80)
+        return self.reward, game_over
 
     # Hits boundary
     def is_collision(self, pt=None):
-        if pt is None:
-            pt = self.drone
         if pt.x > self.w - BLOCK_SIZE or pt.x < 0 or pt.y > self.h - BLOCK_SIZE or pt.y < 0:
             return True
         return False
+    
+    def relative_distance(self):
+        self.distance = math.floor(math.sqrt(((self.drone.x-self.man_x)**2) + ((self.drone.y - self.man_y)**2)))
+        return self.distance
 
     #TO DO
     def get_reward(self, game_over):
-        
-        print(self.drone.x, self.drone.y)
 
         if (self.drone.x >= 0 and self.drone.x < 20) or (self.drone.x > self.w-BLOCK_SIZE and self.drone.x < self.w) :
             self.reward = -5
@@ -103,20 +109,24 @@ class GameAI:
         else:
             self.reward = -1
             
-        if self.is_collision() or self.frame_iteration > 1000: # colision & loop 
+        if self.is_collision(self.drone) or self.frame_iteration > 100  : # colision & loop 
             game_over = True
             self.reward = -500 
-            return self.reward, game_over, self.score
-
+            return self.reward, game_over
+        
+        if self.is_collision(self.man) : # colision & loop 
+            game_over = True
+            self.reward = -500
+            return self.reward, game_over
+        
         if self.drone == self.man: # place new man or just move
-            self.score += 1
-            self.reward = 1000
+            
+            self.reward = 3000
             self._place_man() 
-        # elif pass:
-        #     pass
+
         
 
-        return self.reward, game_over, self.score
+        return self.reward, game_over
 
     #Update Display
     def _update_ui(self):
