@@ -44,8 +44,7 @@ class GameAI:
     # Reset World
     def reset(self):
         self.drone = Point(self.w/2, self.h/2)
-        self.score = 0
-        self.man
+
         self.man = Point(self.w-BLOCK_SIZE,self.h-BLOCK_SIZE)
         self._place_man()
         self.frame_iteration = 0
@@ -77,9 +76,11 @@ class GameAI:
         
         game_over = False
 
+        distance = self.relative_distance()
+        #print ("Distance",distance)
         
         # 4. reward for each step
-        self.reward, game_over = self.get_reward(game_over)   
+        self.reward, game_over = self.get_reward()   
        
         # 5. update ui and clock
         self._update_ui()
@@ -94,39 +95,57 @@ class GameAI:
         return False
     
     def relative_distance(self):
-        self.distance = math.floor(math.sqrt(((self.drone.x-self.man_x)**2) + ((self.drone.y - self.man_y)**2)))
+        self.distance = math.floor(math.sqrt(((self.drone.x-self.man.x)**2) + ((self.drone.y - self.man.y)**2)))
         return self.distance
+    
+    def get_reward(self):
+        """returns reward and done"""
+        if self.is_collision(self.drone) or self.is_collision(self.man):
+            return -300, True
+
+        elif self.drone.x == self.man.x and self.drone.y == self.man.y:
+            return 1000, True
+
+        elif (self.drone.y == self.man.y) and (self.drone.x != self.man.x):
+            return 10, False
+
+        elif (self.drone.y == self.man.y + 20) or (self.drone.y == self.man.y - 20):
+            return 5, False
+
+        else:
+            return -1, False
+
 
     #TO DO
-    def get_reward(self, game_over):
+    # def get_reward(self, game_over):
 
-        if (self.drone.x >= 0 and self.drone.x < 20) or (self.drone.x > self.w-BLOCK_SIZE and self.drone.x < self.w) :
-            self.reward = -5
-        else:
-            self.reward = -1
-        if (self.drone.y >= 0 and self.drone.y < 20) or (self.drone.y > self.h-BLOCK_SIZE and self.drone.y < self.h):
-            self.reward = -5
-        else:
-            self.reward = -1
+    #     if (self.drone.x >= 0 and self.drone.x < 20) or (self.drone.x > self.w-BLOCK_SIZE and self.drone.x < self.w) :
+    #         self.reward = -5
+    #     else:
+    #         self.reward = -1
+    #     if (self.drone.y >= 0 and self.drone.y < 20) or (self.drone.y > self.h-BLOCK_SIZE and self.drone.y < self.h):
+    #         self.reward = -5
+    #     else:
+    #         self.reward = -1
             
-        if self.is_collision(self.drone) or self.frame_iteration > 100  : # colision & loop 
-            game_over = True
-            self.reward = -500 
-            return self.reward, game_over
+    #     if self.is_collision(self.drone) or self.frame_iteration > 100  : # colision & loop 
+    #         game_over = True
+    #         self.reward = -500 
+    #         return self.reward, game_over
         
-        if self.is_collision(self.man) : # colision & loop 
-            game_over = True
-            self.reward = -500
-            return self.reward, game_over
+    #     if self.is_collision(self.man) : # colision & loop 
+    #         game_over = True
+    #         self.reward = -500
+    #         return self.reward, game_over
         
-        if self.drone == self.man: # place new man or just move
+    #     if self.drone == self.man: # place new man or just move
             
-            self.reward = 3000
-            self._place_man() 
+    #         self.reward = 3000
+    #         self._place_man() 
 
         
 
-        return self.reward, game_over
+    #     return self.reward, game_over
 
     #Update Display
     def _update_ui(self):
