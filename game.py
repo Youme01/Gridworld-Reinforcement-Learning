@@ -83,7 +83,7 @@ class GameAI:
         self.reward, game_over = self.get_reward()   
        
         # 5. update ui and clock
-        self._update_ui()
+        #self._update_ui()
 
         self.clock.tick(80)
         return self.reward, game_over
@@ -106,11 +106,14 @@ class GameAI:
         elif self.drone.x == self.man.x and self.drone.y == self.man.y:
             return 1000, True
 
-        elif (self.drone.y == self.man.y) and (self.drone.x != self.man.x):
-            return 10, False
+        # elif (self.drone.y == self.man.y) and (self.drone.x != self.man.x):
+        #     distance = self.relative_distance()
+        #     r_curr =  math.log10(100 / (0.01*distance))
+            
+        #     return r_curr, False
 
-        elif (self.drone.y == self.man.y + 20) or (self.drone.y == self.man.y - 20):
-            return 5, False
+        # elif (self.drone.y == self.man.y + 20) or (self.drone.y == self.man.y - 20):
+        #     return 5, False
 
         else:
             return -1, False
