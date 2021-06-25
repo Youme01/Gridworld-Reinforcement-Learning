@@ -69,8 +69,6 @@ class GameAI:
         
         # 2. move drone
         self._move(action)
-        # 2. move drone
-        self._move(action)
         if self.frame_iteration%3==0:
             self._place_man() 
         
@@ -106,49 +104,9 @@ class GameAI:
         elif self.drone.x == self.man.x and self.drone.y == self.man.y:
             return 1000, True
 
-        # elif (self.drone.y == self.man.y) and (self.drone.x != self.man.x):
-        #     distance = self.relative_distance()
-        #     r_curr =  math.log10(100 / (0.01*distance))
-            
-        #     return r_curr, False
-
-        # elif (self.drone.y == self.man.y + 20) or (self.drone.y == self.man.y - 20):
-        #     return 5, False
-
         else:
             return -1, False
 
-
-    #TO DO
-    # def get_reward(self, game_over):
-
-    #     if (self.drone.x >= 0 and self.drone.x < 20) or (self.drone.x > self.w-BLOCK_SIZE and self.drone.x < self.w) :
-    #         self.reward = -5
-    #     else:
-    #         self.reward = -1
-    #     if (self.drone.y >= 0 and self.drone.y < 20) or (self.drone.y > self.h-BLOCK_SIZE and self.drone.y < self.h):
-    #         self.reward = -5
-    #     else:
-    #         self.reward = -1
-            
-    #     if self.is_collision(self.drone) or self.frame_iteration > 100  : # colision & loop 
-    #         game_over = True
-    #         self.reward = -500 
-    #         return self.reward, game_over
-        
-    #     if self.is_collision(self.man) : # colision & loop 
-    #         game_over = True
-    #         self.reward = -500
-    #         return self.reward, game_over
-        
-    #     if self.drone == self.man: # place new man or just move
-            
-    #         self.reward = 3000
-    #         self._place_man() 
-
-        
-
-    #     return self.reward, game_over
 
     #Update Display
     def _update_ui(self):
